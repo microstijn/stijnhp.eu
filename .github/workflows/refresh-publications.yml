@@ -1,0 +1,36 @@
+name: Refresh publications
+
+# Rebuilds the publication list from OpenAlex on the 1st of each month and
+# commits the result if anything changed. Also runnable on demand from the
+# Actions tab (workflow_dispatch). Delete this file if you prefer to update
+# the list manually with `python build.py`.
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"   # 06:00 UTC, 1st of every month
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Regenerate publications from OpenAlex
+        run: python build.py
+      - name: Commit if the list changed
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Auto-refresh publications from OpenAlex"
+            git push
+          else
+            echo "No changes."
+          fi
